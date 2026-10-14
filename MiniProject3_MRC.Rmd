@@ -1,0 +1,259 @@
+###########################################################
+# DSA 8010 - Project 3
+# Question 2: Heifer Feed Study
+# File: heifer_mod.csv
+###########################################################
+
+```{r editing dataframe, include=FALSE}
+# Load packages
+library(tidyverse)
+
+# Consistent color scheme for all plots
+plot_colors <- c("GROUP" = "purple", "PRECISION" = "orange")
+
+# Load data
+heifer <- read_csv("heifer_mod.csv")
+
+# Quick look at data
+head(heifer)
+str(heifer)
+```
+
+
+###########################################################
+# Variables we care about:
+# - Treatment: GROUP or PRECISION
+# - level: 0.5 or 1.0 (supplement level)
+# - tgain: total weight gain
+###########################################################
+
+```{r}
+# Descriptive summary
+heifer_summary <- heifer %>%
+  group_by(level, Treatment) %>%
+  summarise(
+    n = n(),
+    mean_tgain = mean(tgain, na.rm = TRUE),
+    sd_tgain   = sd(tgain, na.rm = TRUE)
+  )
+
+heifer_summary   # print summary table
+
+# Data by supplement level
+heifer_05 <- heifer %>% filter(level == 0.5)
+heifer_10 <- heifer %>% filter(level == 1.0)
+
+heifer_05 %>% count(Treatment)
+heifer_10 %>% count(Treatment)
+```
+
+
+```{r}
+# BoxPlot by supplement level
+
+ggplot(heifer_05, aes(x = Treatment, y = tgain, fill = Treatment)) +
+  geom_boxplot(color = "white", size = 1) +
+  scale_fill_manual(values = plot_colors) +
+  labs(
+    title = "Total Weight Gain by Feeding Method (Level = 0.5)",
+    x = "Feeding Method",
+    y = "Total Weight Gain (lbs)"
+  ) +
+  theme_minimal()
+
+# Boxplot for level 1.0
+ggplot(heifer_10, aes(x = Treatment, y = tgain, fill = Treatment)) +
+  geom_boxplot(color = "white", size = 1) +
+  scale_fill_manual(values = plot_colors) +
+  labs(
+    title = "Total Weight Gain by Feeding Method (Level = 1.0)",
+    x = "Feeding Method",
+    y = "Total Weight Gain (lbs)"
+  ) +
+  theme_minimal()
+```
+
+# Two-sample t-tests 
+
+###########################################################
+Hypotheses for the t-test
+
+We want to determine whether there is a difference in average total weight gain between GROUP and PRECISION feeding methods at each supplement level.
+
+**For each level (0.5 and 1.0):**
+
+- Null hypothesis (H₀): μ₁ = μ₂  
+  (The mean total weight gain is the same for both feeding methods.)
+
+- Alternative hypothesis (Hₐ): μ₁ ≠ μ₂  
+  (The mean total weight gain differs between the feeding methods.)
+############################################################
+
+```{r}
+## Level 0.5
+t_05 <- t.test(tgain ~ Treatment,
+               data = heifer_05,
+               var.equal = FALSE)   
+
+t_05   
+
+## Level 1.0
+t_10 <- t.test(tgain ~ Treatment,
+               data = heifer_10,
+               var.equal = FALSE)
+
+t_10    
+```
+
+# Normality checks (histograms and Q-Q plots)
+
+```{r}
+## Histograms for Level 0.5
+heifer_05 %>%
+  ggplot(aes(x = tgain, fill = Treatment)) +
+  geom_histogram(bins = 8, color = "white", alpha = 0.9) +
+  scale_fill_manual(values = plot_colors) +
+  facet_wrap(~ Treatment) +
+  labs(
+    title = "Distribution of Total Weight Gain (Level 0.5)",
+    x = "Total Weight Gain (lbs)",
+    y = "Count"
+  ) +
+  theme_minimal()
+```
+```{r}
+# Combined histogram for Level 0.5
+ggplot(heifer_05, aes(x = tgain, fill = Treatment)) +
+  geom_histogram(alpha = 0.6, position = "identity", bins = 8, color = "white") +
+  scale_fill_manual(values = c("GROUP" = "purple", "PRECISION" = "orange")) +
+  labs(
+    title = "Distribution of Total Weight Gain (Level 0.5)",
+    x = "Total Weight Gain (lbs)",
+    y = "Count"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+```
+```{r}
+ggplot(heifer_10, aes(x = tgain, fill = Treatment)) +
+  geom_histogram(bins = 8, color = "white", alpha = 0.9) +
+  scale_fill_manual(values = plot_colors) +
+  facet_wrap(~ Treatment) +
+  labs(
+    title = "Distribution of Total Weight Gain (Level 1.0)",
+    subtitle = "Comparison of GROUP vs PRECISION Feeding Methods",
+    x = "Total Weight Gain (lbs)",
+    y = "Count",
+    fill = "Feeding Method"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+ggplot(heifer_10, aes(x = tgain, fill = Treatment)) +
+  geom_histogram(alpha = 0.6, position = "identity", bins = 8, color = "white") +
+  scale_fill_manual(values = c("GROUP" = "purple", "PRECISION" = "orange")) +
+  labs(
+    title = "Distribution of Total Weight Gain (Level 1.0)",
+    subtitle = "Comparison of GROUP vs PRECISION feeding methods",
+    x = "Total Weight Gain (lbs)",
+    y = "Number of Heifers",
+    fill = "Feeding Method"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray30"),
+    panel.grid.minor = element_blank()
+  )
+
+```
+
+
+```{r}
+## Histogram for Level 0.5
+ggplot(heifer_05, aes(x = tgain, fill = Treatment)) +
+  geom_histogram(bins = 8, color = "white", alpha = 0.9) +
+  scale_fill_manual(values = plot_colors) +
+  facet_wrap(~ Treatment) +
+  labs(
+    title = "Distribution of Total Weight Gain (Level 0.5)",
+    x = "Total Weight Gain (lbs)",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+## Normal Distribution Assessment plots for Level 0.5
+ggplot(heifer_05, aes(sample = tgain, color = Treatment)) +
+  stat_qq(size = 2) +
+  stat_qq_line(size = 1) +
+  scale_color_manual(values = c("GROUP" = "purple", "PRECISION" = "orange")) +
+  labs(
+    title = "Combined Normal Distribution Assessment Plot (Level 0.5)",
+    subtitle = "GROUP vs PRECISION Feeding Methods",
+    x = "Theoretical Quantiles",
+    y = "Sample Quantiles",
+    color = "Feeding Method"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray30"),
+    panel.grid.minor = element_blank()
+  )
+
+
+## Histograms for Level 1.0
+heifer_10 %>%
+  ggplot(aes(x = tgain, fill = Treatment)) +
+  geom_histogram(bins = 8, color = "white", alpha = 0.9) +
+  scale_fill_manual(values = plot_colors) +
+  facet_wrap(~ Treatment) +
+  labs(
+    title = "Distribution of Total Weight Gain (Level 1.0)",
+    x = "Total Weight Gain (lbs)",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+## Normal Distribution Assessment plots for Level 1.0
+ggplot(heifer_10, aes(sample = tgain, color = Treatment)) +
+  stat_qq(size = 2) +
+  stat_qq_line(size = 1) +
+  scale_color_manual(values = c("GROUP" = "purple", "PRECISION" = "orange")) +
+  labs(
+    title = "Combined Normal Distribution Assessment Plot (Level 1.0)",
+    subtitle = "GROUP vs PRECISION Feeding Methods",
+    x = "Theoretical Quantiles",
+    y = "Sample Quantiles",
+    color = "Feeding Method"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray30"),
+    panel.grid.minor = element_blank()
+  )
+
+```
+
+```{r}
+# Summary table 
+heifer_summary
+
+
+# t-test results for Level 0.5
+t_05$statistic    
+t_05$p.value      
+t_05$conf.int     
+
+# t-test results for Level 1.0
+t_10$statistic
+t_10$p.value
+t_10$conf.int
+```
+
+
+#The purpose of this analysis was to determine whether the feeding method (GROUP or PRECISION) affected total weight gain among heifers at two supplement levels, 0.5% and 1.0% of body weight. At the 0.5% level, GROUP-fed heifers (n = 16) gained an average of 185.1 lbs (SD = 35.7), while PRECISION-fed heifers (n = 15) gained 128.5 lbs (SD = 49.9). At the 1.0% level, the average gains were 197.9 lbs (SD = 49.1) for GROUP and 226.3 lbs (SD = 48.7) for PRECISION. Boxplots and histograms showed clear separation between treatments at the 0.5% level but considerable overlap at 1.0%. To assess whether these differences were statistically significant, Welch’s two-sample t-tests were conducted at each level. For the 0.5% level, the test produced t = 3.61, df = 25.2, and p = 0.0013, indicating a significant difference in mean total weight gain between the feeding methods. At the 1.0% level, the test yielded t = –1.64, df = 30, and p = 0.112, suggesting no significant difference in mean weight gain. Thus, feeding method had a statistically significant effect at the lower supplement level, where GROUP feeding resulted in greater gains, but not at the higher level. Examination of histograms and normal Q–Q plots showed approximately normal distributions without extreme outliers, supporting the assumptions of the t-test. Although sample sizes were modest, they were balanced across treatments, and the results appear reliable within the context of the study. Overall, the findings suggest that feeding strategy influences weight gain at lower supplement levels, while differences diminish as supplement level increases.
